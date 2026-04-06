@@ -59,6 +59,9 @@ class Model:
 
     def loss(self, AL: np.ndarray, Y: np.ndarray) -> float:
         return -np.sum(Y * np.log(AL + 1e-8)) / Y.shape[1]
+    
+    def accuracy(self, AL: np.ndarray, Y: np.ndarray) -> float:
+        return np.mean(np.argmax(AL, axis=0) == np.argmax(Y, axis=0))
 
     def train(self, X_train: np.ndarray, Y_train: np.ndarray, epochs: int, batch_size: int, learning_rate: float):
         m = X_train.shape[1]
@@ -71,18 +74,20 @@ class Model:
             epoch_acc = 0
             num_batches = 0
             
+            perm = np.random.permutation(m)
+            X_shu = X_train[:, perm]
+            Y_shu = Y_train[:, perm]
+            
             for i in range(0, m, batch_size):
                 end_idx = min(i + batch_size, m)
-                X_batch = X_train[ : , i : end_idx]
-                Y_batch = Y_train[ : , i : end_idx]
+                X_batch = X_shu[ : , i : end_idx]
+                Y_batch = Y_shu[ : , i : end_idx]
                 AL = self.forward(X=X_batch)
                 
                 batch_loss = self.loss(AL, Y_batch)
                 epoch_loss += batch_loss
-                
-                predict = np.argmax(AL, axis=0)
-                label = np.argmax(Y_batch, axis=0)
-                batch_acc = np.mean(predict == label)
+
+                batch_acc = self.accuracy(AL, Y_batch)
                 epoch_acc += batch_acc
                 
                 self.backward(Y_batch)
